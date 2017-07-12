@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name">ContactBook</string>
+    <string name="autor_sign">cr. by Viacheslav Vasilchenko</string>
+
+    <string name="back_again">Click BACK again to exit</string>
+    <!-- action menu -->
+    <string name="action_sort">Sort</string>
+    <string name="action_sort_az_first">A-Z by first name</string>
+    <string name="action_sort_za_first">Z-A by first name</string>
+    <string name="action_sort_az_last">A-Z by last name</string>
+    <string name="action_sort_za_last">Z-A by last name</string>
+    <string name="action_sort_none">Diasble sort</string>
+
+    <!-- headers -->
+    <string name="contact_list_empty">There is no contacts</string>
+    <string name="title_activity_contact_add">Adding new contact</string>
+    <string name="title_activity_contact_edit">Editing contact</string>
+
+    <!-- Contact activity labels -->
+    <string name="first_name_hint">First name</string>
+    <string name="last_name_hint">Last name</string>
+    <string name="phone_number_hint">Phone number</string>
+    <string name="email_hint">Email</string>
+    <string name="invalid_email">Invalid email address</string>
+    <string name="empty_fields">Fill at least one field</string>
+    <string name="action_delete_title">Delete</string>
+
+    <!-- dialogs -->
+    <string name="delete_dialog_title">Delete entry?</string>
+    <string name="delete_dialog_message">Are you sure to delete this entry?</string>
+    <string name="cancel_dialog_title">Cancel?</string>
+    <string name="cancel_dialog_message">Close without saving?</string>
+    <string name="loading">Loading…</string>
+
+    <!-- Google api strings -->
+    <string name="signed_in_fmt">Signed in as: %s</string>
+    <string name="signed_out">Signed out</string>
+
+    <!-- btn labels -->
+    <string name="btn_sign_out">Sign Out</string>
+    <string name="btn_continue">Continue</string>
+    <string name="btn_yes">YES</string>
+    <string name="btn_no">NO</string>
+
+</resources>

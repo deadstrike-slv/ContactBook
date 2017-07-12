@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "451915162882",
+    "project_id": "contactbook-adc7a"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451915162882:android:d0fcf87943074266",
+        "android_client_info": {
+          "package_name": "com.example.deadstrike.contactbook"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "451915162882-63q0gpuiu2imh37bg6cmqi77ui6jaor6.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "451915162882-1pusvh9lc6vbfaaej80aafldpf6hpvbp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.deadstrike.contactbook",
+            "certificate_hash": "fefc57545815e74612f5a3c96d7eaaeaa99b4e69"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCd1oc8OxgtdauFdjRzr5MGiPy-3E1HkuQ"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

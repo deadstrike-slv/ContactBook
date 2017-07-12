@@ -1,0 +1,29 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.example.deadstrike.contactbook.MainActivity">
+
+    <item
+        android:title="@string/action_sort"
+        android:icon="@drawable/ic_sort_by_alpha_white_48dp"
+        app:showAsAction="ifRoom">
+        <!-- "file" submenu -->
+        <menu>
+            <item android:id="@+id/az_first_name"
+                android:title="@string/action_sort_az_first"
+                app:showAsAction="never"/>
+            <item android:id="@+id/za_first_name"
+                android:title="@string/action_sort_za_first"
+                app:showAsAction="never"/>
+            <item android:id="@+id/az_last_name"
+                android:title="@string/action_sort_az_last"
+                app:showAsAction="never"/>
+            <item android:id="@+id/za_last_name"
+                android:title="@string/action_sort_za_last"
+                app:showAsAction="never"/>
+            <item android:id="@+id/disable_sort"
+                android:title="@string/action_sort_none"
+                app:showAsAction="never"/>
+        </menu>
+    </item>
+</menu>
