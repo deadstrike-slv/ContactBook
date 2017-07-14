@@ -19,9 +19,10 @@
     <!-- Contact activity labels -->
     <string name="first_name_hint">First name</string>
     <string name="last_name_hint">Last name</string>
-    <string name="phone_number_hint">Phone number</string>
-    <string name="email_hint">Email</string>
+    <string name="phone_numbers_list_caption">Phone numbers: </string>
+    <string name="emails_list_caption">Email addresses: </string>
     <string name="invalid_email">Invalid email address</string>
+    <string name="invalid_phone_number">Invalid phone number</string>
     <string name="empty_fields">Fill at least one field</string>
     <string name="action_delete_title">Delete</string>
 
@@ -37,6 +38,8 @@
     <string name="signed_out">Signed out</string>
 
     <!-- btn labels -->
+    <string name="btn_add_phone_number_description">Add phone number</string>
+    <string name="btn_add_email_description">Add email address</string>
     <string name="btn_sign_out">Sign Out</string>
     <string name="btn_continue">Continue</string>
     <string name="btn_yes">YES</string>

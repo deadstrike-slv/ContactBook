@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/input"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginLeft="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1">
+
+        <android.support.design.widget.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1" />
+
+    </android.support.design.widget.TextInputLayout>
+
+    <ImageButton
+        android:id="@+id/button_delete_item"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:background="#00000000"
+        android:contentDescription="@string/action_delete_title"
+        android:src="@android:drawable/ic_menu_delete" />
+
+</LinearLayout>

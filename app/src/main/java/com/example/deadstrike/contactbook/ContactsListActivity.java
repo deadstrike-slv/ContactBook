@@ -11,29 +11,27 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.deadstrike.contactbook.adapters.ContactsCursorRecyclerAdapter;
+import com.example.deadstrike.contactbook.adapters.ContactsAdapter;
 
 public class ContactsListActivity extends AppCompatActivity
-        implements ContactsCursorRecyclerAdapter.IViewHolderClickListener{
-
-    private Cursor mCursor;
-    DBHelper mDbHelper;
-    SQLiteDatabase db;
-    ContactsCursorRecyclerAdapter contactsAdapter;
+        implements ContactsAdapter.IViewHolderClickListener {
 
     public static String BUNDLE_KEY_USER = "userId";
     public static String BUNDLE_KEY_ROW_ID = "rowId";
-
+    DBHelper mDbHelper;
+    SQLiteDatabase db;
+    ContactsAdapter contactsAdapter;
+    boolean doubleBackToExitPressedOnce = false;
+    private Cursor mCursor;
     private String mCurrentUser;
     private RecyclerView recyclerView;
     private TextView emptyView;
-    boolean doubleBackToExitPressedOnce = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +70,7 @@ public class ContactsListActivity extends AppCompatActivity
         // initialize adapters and recyclerView
         recyclerView = (RecyclerView) findViewById(R.id.contacts_recyclerView);
         emptyView = (TextView) findViewById(R.id.contacts_list_empty_holder);
-        contactsAdapter  = new ContactsCursorRecyclerAdapter(this, mCursor);
+        contactsAdapter = new ContactsAdapter(this, mCursor);
         contactsAdapter.setOnViewHolderClickListener(this);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
@@ -133,7 +131,7 @@ public class ContactsListActivity extends AppCompatActivity
         Intent intent = new Intent(this, ContactActivity.class);
         intent.putExtra(BUNDLE_KEY_USER, mCurrentUser);
         mCursor.moveToPosition(pos);
-        int rowId = mCursor.getInt(mCursor.getColumnIndex(DBHeaders.ContactEntry._ID));
+        int rowId = mCursor.getInt(mCursor.getColumnIndex(DBHeaders.Contacts._ID));
         intent.putExtra(BUNDLE_KEY_ROW_ID, rowId);
         startActivity(intent);
     }
@@ -150,22 +148,22 @@ public class ContactsListActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.az_first_name) {
-            mCursor = getCursor(DBHeaders.ContactEntry.COLUMN_NAME_FIRST_NAME, true);
+            mCursor = getCursor(DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME, true);
             contactsAdapter.changeCursor(mCursor);
             return true;
         }
         if (id == R.id.za_first_name) {
-            mCursor = getCursor(DBHeaders.ContactEntry.COLUMN_NAME_FIRST_NAME, false);
+            mCursor = getCursor(DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME, false);
             contactsAdapter.changeCursor(mCursor);
             return true;
         }
         if (id == R.id.az_last_name) {
-            mCursor = getCursor(DBHeaders.ContactEntry.COLUMN_NAME_LAST_NAME, true);
+            mCursor = getCursor(DBHeaders.Contacts.COLUMN_NAME_LAST_NAME, true);
             contactsAdapter.changeCursor(mCursor);
             return true;
         }
         if (id == R.id.za_last_name) {
-            mCursor = getCursor(DBHeaders.ContactEntry.COLUMN_NAME_LAST_NAME, false);
+            mCursor = getCursor(DBHeaders.Contacts.COLUMN_NAME_LAST_NAME, false);
             contactsAdapter.changeCursor(mCursor);
             return true;
         }
@@ -179,17 +177,36 @@ public class ContactsListActivity extends AppCompatActivity
     }
 
     private Cursor getCursor(){
-        return db.query(DBHeaders.ContactEntry.TABLE_NAME, null,
-                DBHeaders.ContactEntry.COLUMN_NAME_USER_ID + " = ?",
-                new String[] {mCurrentUser},
-                null, null, null);
+        return db.rawQuery("SELECT" +
+                        " c." + DBHeaders.Contacts._ID + "," +
+                        " c." + DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME + "," +
+                        " c." + DBHeaders.Contacts.COLUMN_NAME_LAST_NAME + "," +
+                        " p." + DBHeaders.PhoneNumbers.COLUMN_NAME_PHONE_NUMBER + "," +
+                        " e." + DBHeaders.Emails.COLUMN_NAME_EMAIL +
+                        " FROM " + DBHeaders.Contacts.TABLE_NAME + " c" +
+                        " LEFT JOIN " + DBHeaders.PhoneNumbers.TABLE_NAME + " p" +
+                        " ON c." + DBHeaders.Contacts._ID + " = p." + DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID +
+                        " LEFT JOIN " + DBHeaders.Emails.TABLE_NAME + " e" +
+                        " ON c." + DBHeaders.Contacts._ID + " = e." + DBHeaders.Emails.COLUMN_NAME_CONTACT_ID +
+                        " WHERE " + DBHeaders.Contacts.COLUMN_NAME_USER_ID + " = ?" +
+                        " GROUP BY c." + DBHeaders.Contacts._ID,
+                new String[]{mCurrentUser});
     }
 
     private Cursor getCursor(String orderBy, boolean ascending){
         String sortOrder = ascending ? " ASC" : " DESC";
-        return db.query(DBHeaders.ContactEntry.TABLE_NAME, null,
-                DBHeaders.ContactEntry.COLUMN_NAME_USER_ID + " = ?",
-                new String[] {mCurrentUser},
-                null, null, orderBy + sortOrder);
+        return db.rawQuery("SELECT" +
+                        " c." + DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME + "," +
+                        " p." + DBHeaders.PhoneNumbers.COLUMN_NAME_PHONE_NUMBER + "," +
+                        " e." + DBHeaders.Emails.COLUMN_NAME_EMAIL +
+                        " FROM " + DBHeaders.Contacts.TABLE_NAME + " c" +
+                        " LEFT JOIN " + DBHeaders.PhoneNumbers.TABLE_NAME + " p" +
+                        " ON c." + DBHeaders.Contacts._ID + " = p." + DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID +
+                        " LEFT JOIN " + DBHeaders.Emails.TABLE_NAME + " e" +
+                        " ON c." + DBHeaders.Contacts._ID + " = e." + DBHeaders.Emails.COLUMN_NAME_CONTACT_ID +
+                        " WHERE " + DBHeaders.Contacts.COLUMN_NAME_USER_ID + " = ?" +
+                        " GROUP BY c." + DBHeaders.Contacts._ID +
+                        " ORDER BY " + orderBy + sortOrder,
+                new String[]{mCurrentUser});
     }
 }

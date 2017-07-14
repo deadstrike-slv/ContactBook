@@ -1,52 +1,57 @@
 package com.example.deadstrike.contactbook;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.telephony.PhoneNumberFormattingTextWatcher;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.example.deadstrike.contactbook.adapters.ContactInfoAdapter;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class ContactActivity extends AppCompatActivity implements View.OnClickListener{
 
-    // true if adding new row (as default), false if editing existing row
-    private boolean mMode = true;
-
+    //handling errors
+    private static final int STATE_EMPTY_FIELDS = 10;
+    private static final int STATE_ERROR_EMAIL = 20;
+    private static final int STATE_ERROR_PHONE_NUMBER = 30;
     //region data holders
     TextInputLayout firstNameInputLayout;
     TextInputLayout lastNameInputLayout;
-    TextInputLayout phoneNumberInputLayout;
-    TextInputLayout emailInputLayout;
+    RecyclerView phoneNumbersInputList;
+    RecyclerView emailsInputList;
+    ContactInfoAdapter phoneNumbersAdapter;
+    ContactInfoAdapter emailsAdapter;
     //endregion
-
     DBHelper mDBHelper;
     SQLiteDatabase db;
-
-    private static final int STATE_EMPTY_FIELDS = 10;
-    private static final int STATE_ERROR_EMAIL = 20;
-
     private int ERROR_STATE=0;
-
+    // true if adding new row (as default), false if editing existing row
+    private boolean mMode = true;
+    // dataset for temp holding user data
+    private String firstName = "";
+    private String lastName = "";
+    private List<String> phoneNumbers = new ArrayList<>();
+    private List<String> emails = new ArrayList<>();
     private String mCurrentUser;
-    private int mRowId;
-
-    //regexp pattern to validate email address
-    private static final String EMAIL_PATTERN = "^[a-zA-Z0-9#_~!$&'()*+,;=:.\"(),:;<>@\\[\\]\\\\]+@[a-zA-Z0-9-]+(\\.[a-zA-Z0-9-]+)*$";
-    private Pattern pattern = Pattern.compile(EMAIL_PATTERN);
+    private long mRowId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,32 +62,12 @@ public class ContactActivity extends AppCompatActivity implements View.OnClickLi
 
         firstNameInputLayout = (TextInputLayout) findViewById(R.id.input_first_name);
         lastNameInputLayout = (TextInputLayout) findViewById(R.id.input_last_name);
-        phoneNumberInputLayout = (TextInputLayout) findViewById(R.id.input_phone_number);
-        phoneNumberInputLayout.getEditText().addTextChangedListener(new PhoneNumberFormattingTextWatcher());
-        emailInputLayout = (TextInputLayout) findViewById(R.id.input_email);
-        emailInputLayout.getEditText().addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!validateEmail(s.toString())) {
-                    emailInputLayout.setErrorEnabled(true);
-                    emailInputLayout.setError(getString(R.string.invalid_email));
-                } else {
-                    emailInputLayout.setErrorEnabled(false);
-                    emailInputLayout.setError(null);
-                }
-            }
-        });
+        phoneNumbersInputList = (RecyclerView) findViewById(R.id.numbers_list);
+        emailsInputList = (RecyclerView) findViewById(R.id.emails_list);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fabSave);
+        findViewById(R.id.button_add_phone_number).setOnClickListener(this);
+        findViewById(R.id.button_add_email).setOnClickListener(this);
         fab.setOnClickListener(this);
 
         mDBHelper = new DBHelper(this);
@@ -99,6 +84,16 @@ public class ContactActivity extends AppCompatActivity implements View.OnClickLi
         } else {
             mCurrentUser = "default";
         }
+
+        phoneNumbersAdapter = new ContactInfoAdapter(phoneNumbers, ContactInfoAdapter.TYPE_PHONE);
+        phoneNumbersInputList.setLayoutManager(new LinearLayoutManager(this));
+        phoneNumbersInputList.setItemAnimator(new DefaultItemAnimator());
+        phoneNumbersInputList.setAdapter(phoneNumbersAdapter);
+
+        emailsAdapter = new ContactInfoAdapter(emails, ContactInfoAdapter.TYPE_EMAIL);
+        emailsInputList.setLayoutManager(new LinearLayoutManager(this));
+        emailsInputList.setItemAnimator(new DefaultItemAnimator());
+        emailsInputList.setAdapter(emailsAdapter);
     }
 
     @Override
@@ -122,9 +117,7 @@ public class ContactActivity extends AppCompatActivity implements View.OnClickLi
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 //delete current row in db
-                                db.delete(DBHeaders.ContactEntry.TABLE_NAME,
-                                        DBHeaders.ContactEntry._ID + " = ?",
-                                        new String[]{mRowId + ""});
+                                removeAt(mRowId);
                                 finish();
                             }
                         })
@@ -155,18 +148,16 @@ public class ContactActivity extends AppCompatActivity implements View.OnClickLi
     public void onClick(View v){
         switch (v.getId()) {
             case R.id.fabSave:
-
-                ContentValues data = readValues();
-                if (data != null) {
+                clearEmptyField();
+                firstName = firstNameInputLayout.getEditText().getText().toString().trim();
+                lastName = lastNameInputLayout.getEditText().getText().toString().trim();
+                if (!hasErrors()) {
                     //updating row
                     db = mDBHelper.getWritableDatabase();
                     if (mMode) {
-                        db.insertOrThrow(DBHeaders.ContactEntry.TABLE_NAME, null, data);
+                        insertCurrentDataIntoDb();
                     } else {
-                        db.update(DBHeaders.ContactEntry.TABLE_NAME,
-                                data,
-                                DBHeaders.ContactEntry._ID + " = ?",
-                                new String[]{mRowId + ""});
+                        updateCurrentDataIntoDb(mRowId);
                     }
                     this.finish();
 
@@ -174,80 +165,193 @@ public class ContactActivity extends AppCompatActivity implements View.OnClickLi
                     switch (ERROR_STATE) {
                         case STATE_EMPTY_FIELDS:
                             Toast.makeText(v.getContext(), getString(R.string.empty_fields), Toast.LENGTH_SHORT).show();
+                            break;
 
                         case STATE_ERROR_EMAIL:
                             Toast.makeText(v.getContext(), getString(R.string.invalid_email), Toast.LENGTH_SHORT).show();
+                            break;
+
+                        case STATE_ERROR_PHONE_NUMBER:
+                            Toast.makeText(v.getContext(), getString(R.string.invalid_phone_number), Toast.LENGTH_SHORT).show();
+                            break;
 
                         default:
                             Toast.makeText(v.getContext(), "UNKNOWN ERROR", Toast.LENGTH_SHORT).show();
                     }
-
                 }
+                break;
+
+            case R.id.button_add_phone_number:
+                phoneNumbers.add("");
+                phoneNumbersAdapter.notifyDataSetChanged();
+                break;
+
+            case R.id.button_add_email:
+                emails.add("");
+                emailsAdapter.notifyDataSetChanged();
         }
     }
 
-    public boolean validateEmail(String email) {
-        if (email.equals(""))
+    private void clearEmptyField() {
+        phoneNumbers.removeAll(Arrays.asList("", null));
+        emails.removeAll(Arrays.asList("", null));
+    }
+
+    private boolean hasErrors() {
+        if (phoneNumbersAdapter.hasErrorInput()) {
+            ERROR_STATE = STATE_ERROR_PHONE_NUMBER;
             return true;
-        Matcher matcher = pattern.matcher(email);
-        return matcher.matches();
-    }
+        }
 
-    @Nullable
-    private ContentValues readValues() {
-        // read from views
-        String firstName = firstNameInputLayout.getEditText().getText().toString().trim();
-        String lastName = lastNameInputLayout.getEditText().getText().toString().trim();
-        String phoneNumber = phoneNumberInputLayout.getEditText().getText().toString().trim();
-        String email = emailInputLayout.getEditText().getText().toString().trim();
-        //TODO phone & email checking
-
-        if (!validateEmail(email)) {
+        if (emailsAdapter.hasErrorInput()) {
             ERROR_STATE = STATE_ERROR_EMAIL;
-            return null;
+            return true;
         }
 
-        //if at least ONE field is non empty ...
-        if ((firstName + lastName + phoneNumber + email).equals("")) {
+        if (((firstName + lastName).equals("")) && phoneNumbers.isEmpty() && emails.isEmpty()) {
+            //all fields are empty
             ERROR_STATE = STATE_EMPTY_FIELDS;
-            return null;
+            return true;
         }
 
-        ContentValues cv = new ContentValues();
-        cv.put(DBHeaders.ContactEntry.COLUMN_NAME_USER_ID, mCurrentUser);
-        cv.put(DBHeaders.ContactEntry.COLUMN_NAME_FIRST_NAME, firstName);
-        cv.put(DBHeaders.ContactEntry.COLUMN_NAME_LAST_NAME, lastName);
-        cv.put(DBHeaders.ContactEntry.COLUMN_NAME_PHONE_NUMBER, phoneNumber);
-        cv.put(DBHeaders.ContactEntry.COLUMN_NAME_EMAIL, email);
-
-        return cv;
+        return false;
     }
 
-    private void fillViewsWithData(){
+    private void readDataFromDB() {
         db = mDBHelper.getReadableDatabase();
         Cursor cursor = null;
         try {
-            cursor = db.rawQuery("SELECT * FROM " + DBHeaders.ContactEntry.TABLE_NAME +
-                    " WHERE " + DBHeaders.ContactEntry._ID + " = ?",
+            cursor = db.rawQuery("SELECT * FROM " + DBHeaders.Contacts.TABLE_NAME +
+                            " WHERE " + DBHeaders.Contacts._ID + " = ?",
                     new String[] {mRowId + ""});
             if (cursor.getCount() > 0) {
                 cursor.moveToFirst();
-                firstNameInputLayout.getEditText().setText(
-                        cursor.getString(cursor.getColumnIndex(DBHeaders.ContactEntry.COLUMN_NAME_FIRST_NAME))
-                );
-                lastNameInputLayout.getEditText().setText(
-                        cursor.getString(cursor.getColumnIndex(DBHeaders.ContactEntry.COLUMN_NAME_LAST_NAME))
-                );
-                phoneNumberInputLayout.getEditText().setText(
-                        cursor.getString(cursor.getColumnIndex(DBHeaders.ContactEntry.COLUMN_NAME_PHONE_NUMBER))
-                );
-                emailInputLayout.getEditText().setText(
-                        cursor.getString(cursor.getColumnIndex(DBHeaders.ContactEntry.COLUMN_NAME_EMAIL))
-                );
+                //read first name and last name
+                firstName = cursor.getString(
+                        cursor.getColumnIndex(DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME));
+                lastName = cursor.getString(
+                        cursor.getColumnIndex(DBHeaders.Contacts.COLUMN_NAME_LAST_NAME));
+
+                Cursor additionalCursor = null;
+                //read phone numbers associated with current contact entry
+                try {
+                    additionalCursor = db.rawQuery("SELECT " + DBHeaders.PhoneNumbers.COLUMN_NAME_PHONE_NUMBER +
+                                    " FROM " + DBHeaders.PhoneNumbers.TABLE_NAME +
+                                    " WHERE " + DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID + " = ?",
+                            new String[]{mRowId + ""});
+                    // save to local variable
+                    for (additionalCursor.moveToFirst(); !additionalCursor.isAfterLast(); additionalCursor.moveToNext()) {
+                        phoneNumbers.add(additionalCursor.getString(
+                                additionalCursor.getColumnIndex(DBHeaders.PhoneNumbers.COLUMN_NAME_PHONE_NUMBER)));
+                    }
+                } finally {
+                    if (additionalCursor != null)
+                        additionalCursor.close();
+                }
+                //read email addresses associated with current contact entry
+                try {
+                    additionalCursor = db.rawQuery("SELECT " + DBHeaders.Emails.COLUMN_NAME_EMAIL +
+                                    " FROM " + DBHeaders.Emails.TABLE_NAME +
+                                    " WHERE " + DBHeaders.Emails.COLUMN_NAME_CONTACT_ID + " = ?",
+                            new String[]{mRowId + ""});
+                    // save to local variable
+                    for (additionalCursor.moveToFirst(); !additionalCursor.isAfterLast(); additionalCursor.moveToNext()) {
+                        emails.add(additionalCursor.getString(
+                                additionalCursor.getColumnIndex(DBHeaders.Emails.COLUMN_NAME_EMAIL)));
+                    }
+                } finally {
+                    if (additionalCursor != null)
+                        additionalCursor.close();
+                }
             }
         }finally {
             if (cursor != null)
                 cursor.close();
         }
+    }
+
+    private void insertCurrentDataIntoDb() {
+        ContentValues cv = new ContentValues();
+        // at first create new contact
+        cv.put(DBHeaders.Contacts.COLUMN_NAME_USER_ID, mCurrentUser);
+        cv.put(DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME, firstName);
+        cv.put(DBHeaders.Contacts.COLUMN_NAME_LAST_NAME, lastName);
+        // insert new row in Contacts table
+        long newId = db.insertOrThrow(DBHeaders.Contacts.TABLE_NAME, null, cv);
+
+        if (newId > 0) {
+            insertPhoneNumbers(newId);
+            insertEmails(newId);
+        }
+
+    }
+
+    private void updateCurrentDataIntoDb(long contactId) {
+        ContentValues cv = new ContentValues();
+        // at first create new contact
+        cv.put(DBHeaders.Contacts.COLUMN_NAME_USER_ID, mCurrentUser);
+        cv.put(DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME, firstName);
+        cv.put(DBHeaders.Contacts.COLUMN_NAME_LAST_NAME, lastName);
+
+        db.update(DBHeaders.Contacts.TABLE_NAME, cv,
+                DBHeaders.Contacts._ID + " = ?",
+                new String[]{contactId + ""});
+
+        //delete old data
+        db.delete(DBHeaders.PhoneNumbers.TABLE_NAME,
+                DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID + " = ?",
+                new String[]{contactId + ""});
+        db.delete(DBHeaders.Emails.TABLE_NAME,
+                DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID + " = ?",
+                new String[]{contactId + ""});
+
+        insertPhoneNumbers(contactId);
+        insertEmails(contactId);
+    }
+
+    private void insertPhoneNumbers(long contactId) {
+        ContentValues cv;
+        try {
+            for (String number : phoneNumbers) {
+                cv = new ContentValues();
+                cv.put(DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID, contactId);
+                cv.put(DBHeaders.PhoneNumbers.COLUMN_NAME_PHONE_NUMBER, number);
+                db.insertOrThrow(DBHeaders.PhoneNumbers.TABLE_NAME, null, cv);
+            }
+        } catch (SQLException ex) {
+            Log.e("Contact insert phones :", ex.getMessage());
+        }
+    }
+
+    private void insertEmails(long contactId) {
+        ContentValues cv;
+        try {
+            for (String email : emails) {
+                cv = new ContentValues();
+                cv.put(DBHeaders.Emails.COLUMN_NAME_CONTACT_ID, contactId);
+                cv.put(DBHeaders.Emails.COLUMN_NAME_EMAIL, email);
+                db.insertOrThrow(DBHeaders.Emails.TABLE_NAME, null, cv);
+            }
+        } catch (SQLException ex) {
+            Log.e("Contact insert emails :", ex.getMessage());
+        }
+    }
+
+    private void removeAt(long contactId) {
+        db.delete(DBHeaders.Contacts.TABLE_NAME,
+                DBHeaders.Contacts._ID + " = ?",
+                new String[]{contactId + ""});
+        db.delete(DBHeaders.PhoneNumbers.TABLE_NAME,
+                DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID + " = ?",
+                new String[]{contactId + ""});
+        db.delete(DBHeaders.Emails.TABLE_NAME,
+                DBHeaders.PhoneNumbers.COLUMN_NAME_CONTACT_ID + " = ?",
+                new String[]{contactId + ""});
+    }
+
+    private void fillViewsWithData() {
+        readDataFromDB();
+        firstNameInputLayout.getEditText().setText(firstName);
+        lastNameInputLayout.getEditText().setText(lastName);
     }
 }

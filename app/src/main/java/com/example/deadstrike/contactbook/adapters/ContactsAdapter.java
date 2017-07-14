@@ -12,31 +12,29 @@ import android.widget.TextView;
 import com.example.deadstrike.contactbook.DBHeaders;
 import com.example.deadstrike.contactbook.R;
 
-public class ContactsCursorRecyclerAdapter extends CursorRecyclerAdapter<ContactsCursorRecyclerAdapter.ContactViewHolder> {
-
-    private Context mContext;
+public class ContactsAdapter extends CursorRecyclerAdapter<ContactsAdapter.ContactViewHolder> {
 
     //region column index for contact object
     private final int COLUMN_FIRST_NAME_ID;
     private final int COLUMN_LAST_NAME_ID;
     private final int COLUMN_PHONE_NUMBER_ID;
     private final int COLUMN_EMAIL_ID;
+    private Context mContext;
     //endregion
-
     private IViewHolderClickListener mListener;
 
-    public ContactsCursorRecyclerAdapter(Context ctx, @NonNull Cursor c) {
+    public ContactsAdapter(Context ctx, @NonNull Cursor c) {
         super(c);
         mContext = ctx;
 
         COLUMN_FIRST_NAME_ID = c.getColumnIndexOrThrow(
-                DBHeaders.ContactEntry.COLUMN_NAME_FIRST_NAME);
+                DBHeaders.Contacts.COLUMN_NAME_FIRST_NAME);
         COLUMN_LAST_NAME_ID = c.getColumnIndexOrThrow(
-                DBHeaders.ContactEntry.COLUMN_NAME_LAST_NAME);
+                DBHeaders.Contacts.COLUMN_NAME_LAST_NAME);
         COLUMN_PHONE_NUMBER_ID = c.getColumnIndexOrThrow(
-                DBHeaders.ContactEntry.COLUMN_NAME_PHONE_NUMBER);
+                DBHeaders.PhoneNumbers.COLUMN_NAME_PHONE_NUMBER);
         COLUMN_EMAIL_ID = c.getColumnIndexOrThrow(
-                DBHeaders.ContactEntry.COLUMN_NAME_EMAIL);
+                DBHeaders.Emails.COLUMN_NAME_EMAIL);
     }
 
     @Override
@@ -61,14 +59,13 @@ public class ContactsCursorRecyclerAdapter extends CursorRecyclerAdapter<Contact
         });
     }
 
-    public interface IViewHolderClickListener{
-        void onViewHolderClick(int pos);
-    }
-
     public void setOnViewHolderClickListener(IViewHolderClickListener listener){
         mListener = listener;
     }
 
+    public interface IViewHolderClickListener {
+        void onViewHolderClick(int pos);
+    }
 
     class ContactViewHolder extends RecyclerView.ViewHolder {
         TextView tvFirstName;
